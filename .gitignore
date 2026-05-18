@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Django
+*.sqlite3
+**/db.sqlite3
+**/media/uploads/
+staticfiles/
+
+# Environment
+.env
+*.env.local
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+
+# Temp
+temp_api_check.json
+*.tmp
