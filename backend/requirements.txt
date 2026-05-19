@@ -1,7 +1,6 @@
 django>=5.0
 djangorestframework
 django-cors-headers
-anthropic
 pymupdf
 python-docx
 python-dotenv
@@ -9,3 +8,5 @@ psycopg2-binary
 redis
 pymilvus
 requests
+gunicorn
+whitenoise

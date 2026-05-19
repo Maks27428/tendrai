@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { FileSearch } from 'lucide-react';
+import { FileSearch, Shield } from 'lucide-react';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +15,13 @@ export default function Layout({ children }: { children: ReactNode }) {
               <h1 className="text-xl font-bold text-text m-0">TendrAI</h1>
               <p className="text-xs text-text-muted m-0">AI-ассистент госзакупок</p>
             </div>
+          </Link>
+          <Link
+            to="/monopoly"
+            className="flex items-center gap-2 px-4 py-2 bg-warning/10 hover:bg-warning/20 border border-warning/30 rounded-lg transition-colors no-underline"
+          >
+            <Shield className="w-4 h-4 text-warning" />
+            <span className="text-sm font-medium text-warning">Проверка на монополию</span>
           </Link>
         </div>
       </header>

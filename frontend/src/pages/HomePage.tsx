@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UploadZone from '../components/UploadZone';
 import TenderPreviewCard from '../components/TenderPreviewCard';
-import { uploadTender, getTenders } from '../api/client';
-import type { TenderListItem } from '../api/client';
-import { AlertTriangle, Sparkles, Clock } from 'lucide-react';
+import { uploadTender, uploadDemoPdf, getDemoPdfs, getTenders } from '../api/client';
+import type { TenderListItem, DemoPdf } from '../api/client';
+import { AlertTriangle, Sparkles, Clock, Play, ExternalLink } from 'lucide-react';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -12,13 +12,29 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [tenders, setTenders] = useState<TenderListItem[]>([]);
   const [loadingTenders, setLoadingTenders] = useState(true);
+  const [demoPdfs, setDemoPdfs] = useState<DemoPdf[]>([]);
+  const [loadingDemo, setLoadingDemo] = useState('');
 
   useEffect(() => {
     getTenders()
       .then(setTenders)
       .catch(() => {})
       .finally(() => setLoadingTenders(false));
+    getDemoPdfs().then(setDemoPdfs).catch(() => {});
   }, []);
+
+  const handleDemo = async (filename: string) => {
+    setLoadingDemo(filename);
+    setError('');
+    try {
+      const tender = await uploadDemoPdf(filename);
+      navigate(`/analysis/${tender.id}`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Ошибка загрузки демо';
+      setError(msg);
+      setLoadingDemo('');
+    }
+  };
 
   const handleUpload = async (file: File) => {
     setIsUploading(true);
@@ -52,6 +68,62 @@ export default function HomePage() {
       {/* Upload zone — compact when tenders exist */}
       <div className={hasTenders ? '[&_>div]:p-8' : ''}>
         <UploadZone onUpload={handleUpload} isUploading={isUploading} />
+      </div>
+
+      {/* Demo PDFs + Instructions */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Demo button */}
+        {demoPdfs.length > 0 && (
+          <div className="p-5 bg-surface-2 border border-border rounded-xl">
+            <h3 className="text-sm font-semibold text-text mb-3 flex items-center gap-2">
+              <Play className="w-4 h-4 text-primary" />
+              Попробовать на демо-PDF
+            </h3>
+            <div className="space-y-2">
+              {demoPdfs.map((pdf) => (
+                <button
+                  key={pdf.filename}
+                  onClick={() => handleDemo(pdf.filename)}
+                  disabled={!!loadingDemo || isUploading}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors text-left disabled:opacity-50"
+                >
+                  {loadingDemo === pdf.filename ? (
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <Play className="w-4 h-4 text-primary shrink-0" />
+                  )}
+                  <span className="text-sm text-text">{pdf.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Instructions */}
+        <div className="p-5 bg-surface-2 border border-border rounded-xl">
+          <h3 className="text-sm font-semibold text-text mb-3 flex items-center gap-2">
+            <ExternalLink className="w-4 h-4 text-warning" />
+            Загрузить свой тендер
+          </h3>
+          <ol className="space-y-2 text-sm text-text-muted">
+            <li className="flex gap-2">
+              <span className="text-primary font-bold">1.</span>
+              <span>Откройте <a href="https://goszakup.gov.kz" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">goszakup.gov.kz</a></span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-primary font-bold">2.</span>
+              <span>Найдите интересующий тендер</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-primary font-bold">3.</span>
+              <span>Скачайте PDF с техническим заданием</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-primary font-bold">4.</span>
+              <span>Перетащите PDF в зону загрузки выше</span>
+            </li>
+          </ol>
+        </div>
       </div>
 
       {error && (

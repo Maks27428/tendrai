@@ -23,6 +23,7 @@ class Tender(models.Model):
     risk_score = models.IntegerField(null=True)
     risk_explanation = models.TextField(blank=True)
     pitfalls = models.JSONField(null=True, blank=True)
+    contacts = models.JSONField(null=True, blank=True)
 
     technical_proposal = models.TextField(blank=True)
 

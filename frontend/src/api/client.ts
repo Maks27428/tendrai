@@ -63,6 +63,22 @@ export interface StreamEvent {
   error?: string;
 }
 
+export interface DemoPdf {
+  name: string;
+  filename: string;
+}
+
+export async function getDemoPdfs(): Promise<DemoPdf[]> {
+  const { data } = await api.get<DemoPdf[]>('/tenders/demo-pdfs/');
+  return data;
+}
+
+export async function uploadDemoPdf(filename: string): Promise<TenderDetail> {
+  const response = await api.get(`/tenders/demo-pdfs/${filename}/`, { responseType: 'blob' });
+  const file = new File([response.data], filename, { type: 'application/pdf' });
+  return uploadTender(file);
+}
+
 export async function uploadTender(file: File): Promise<TenderDetail> {
   const formData = new FormData();
   formData.append('pdf_file', file);
@@ -77,6 +93,29 @@ export async function getTender(id: number): Promise<TenderDetail> {
 
 export async function getTenders(): Promise<TenderListItem[]> {
   const { data } = await api.get<TenderListItem[]>('/tenders/');
+  return data;
+}
+
+export interface MonopolyFlag {
+  type: string;
+  severity: string;
+  description: string;
+  tenders_involved: number[];
+  evidence: string;
+}
+
+export interface MonopolyResult {
+  monopoly_score: number;
+  verdict: 'clean' | 'suspicious' | 'critical';
+  summary: string;
+  flags: MonopolyFlag[];
+  recommendations: string[];
+}
+
+export async function checkMonopoly(tenderIds: number[]): Promise<MonopolyResult> {
+  const { data } = await api.post<MonopolyResult>('/tenders/monopoly-check/', {
+    tender_ids: tenderIds,
+  });
   return data;
 }
 

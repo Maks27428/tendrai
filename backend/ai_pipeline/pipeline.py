@@ -1,8 +1,11 @@
 import hashlib
 import json
 import logging
+import time
+import functools
 
 from django.core.cache import cache
+from django.db import OperationalError, connection
 
 from tenders.models import Tender, Requirement
 from .pdf_parser import parse_pdf
@@ -16,15 +19,54 @@ logger = logging.getLogger(__name__)
 CACHE_TTL = 60 * 60 * 24 * 7  # 7 days
 
 
+def db_retry(func):
+    """Retry once after 2s on database connection errors (shared server overload)."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except OperationalError as e:
+            logger.warning(f'DB error in {func.__name__}, retrying in 2s: {e}')
+            connection.close()
+            time.sleep(2)
+            return func(*args, **kwargs)
+    return wrapper
+
+
+@db_retry
 def update_status(tender: Tender, status: str, message: str = ''):
     tender.status = status
     tender.progress_message = message
     tender.save(update_fields=['status', 'progress_message', 'updated_at'])
 
 
+@db_retry
+def _get_tender(tender_id: int) -> 'Tender':
+    return Tender.objects.get(id=tender_id)
+
+
+@db_retry
+def _save_tender(tender: Tender, fields: list):
+    tender.save(update_fields=fields)
+
+
+@db_retry
+def _save_requirements(tender: Tender, requirements: list):
+    Requirement.objects.filter(tender=tender).delete()
+    for i, req in enumerate(requirements):
+        Requirement.objects.create(
+            tender=tender,
+            text=req.get('text', ''),
+            category=req.get('category', 'technical'),
+            status=_map_severity(req.get('severity', 'ok')),
+            details=req.get('details', ''),
+            order=i,
+        )
+
+
 def process_tender(tender_id: int):
     """Full AI pipeline: parse -> extract -> score -> generate."""
-    tender = Tender.objects.get(id=tender_id)
+    tender = _get_tender(tender_id)
 
     try:
         # Stage 1: Parse PDF
@@ -32,7 +74,7 @@ def process_tender(tender_id: int):
         parsed = parse_pdf(tender.pdf_file.path)
         tender.parsed_text = parsed['full_text']
         tender.page_count = parsed['page_count']
-        tender.save(update_fields=['parsed_text', 'page_count'])
+        _save_tender(tender, ['parsed_text', 'page_count'])
         update_status(tender, 'parsing', f'Обработано {parsed["page_count"]} страниц')
 
         # Stage 2: Extract requirements via Claude (with cache)
@@ -53,19 +95,11 @@ def process_tender(tender_id: int):
             'delivery_location': extracted.get('delivery_location', ''),
         }
         tender.pitfalls = extracted.get('pitfalls', [])
-        tender.save(update_fields=['title', 'summary', 'pitfalls'])
+        tender.contacts = extracted.get('contacts', {})
+        _save_tender(tender, ['title', 'summary', 'pitfalls', 'contacts'])
 
         # Save requirements
-        Requirement.objects.filter(tender=tender).delete()
-        for i, req in enumerate(extracted.get('requirements', [])):
-            Requirement.objects.create(
-                tender=tender,
-                text=req.get('text', ''),
-                category=req.get('category', 'technical'),
-                status=_map_severity(req.get('severity', 'ok')),
-                details=req.get('details', ''),
-                order=i,
-            )
+        _save_requirements(tender, extracted.get('requirements', []))
 
         req_count = len(extracted.get('requirements', []))
         update_status(tender, 'extracting', f'Найдено {req_count} требований')
@@ -75,13 +109,13 @@ def process_tender(tender_id: int):
         scoring = calculate_risk_score(extracted)
         tender.risk_score = max(0, min(100, scoring.get('risk_score', 50)))
         tender.risk_explanation = scoring.get('risk_explanation', '')
-        tender.save(update_fields=['risk_score', 'risk_explanation'])
+        _save_tender(tender, ['risk_score', 'risk_explanation'])
 
         # Stage 4: Generate proposal
         update_status(tender, 'generating', 'Генерируем техническое предложение...')
         proposal = generate_proposal(extracted)
         tender.technical_proposal = proposal
-        tender.save(update_fields=['technical_proposal'])
+        _save_tender(tender, ['technical_proposal'])
 
         # Stage 5: Store embedding for RAG (non-blocking)
         try:
