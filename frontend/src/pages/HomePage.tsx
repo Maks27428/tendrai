@@ -114,20 +114,28 @@ export default function HomePage() {
           </h3>
           <ol className="space-y-2 text-sm text-text-muted">
             <li className="flex gap-2">
-              <span className="text-primary font-bold">1.</span>
-              <span>Откройте <a href="https://goszakup.gov.kz" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">goszakup.gov.kz</a></span>
+              <span className="text-primary font-bold shrink-0">1.</span>
+              <span>Откройте <a href="https://goszakup.gov.kz/ru/search/lots" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">goszakup.gov.kz → Объявления</a></span>
             </li>
             <li className="flex gap-2">
-              <span className="text-primary font-bold">2.</span>
-              <span>Найдите интересующий тендер</span>
+              <span className="text-primary font-bold shrink-0">2.</span>
+              <span>Введите ключевое слово (напр. «мебель») и нажмите «Поиск»</span>
             </li>
             <li className="flex gap-2">
-              <span className="text-primary font-bold">3.</span>
-              <span>Скачайте PDF с техническим заданием</span>
+              <span className="text-primary font-bold shrink-0">3.</span>
+              <span>Кликните на номер объявления — откроется карточка лота</span>
             </li>
             <li className="flex gap-2">
-              <span className="text-primary font-bold">4.</span>
-              <span>Перетащите PDF в зону загрузки выше</span>
+              <span className="text-primary font-bold shrink-0">4.</span>
+              <span>Найдите раздел <strong className="text-text">«Документы»</strong> или <strong className="text-text">«Техническая спецификация»</strong></span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-primary font-bold shrink-0">5.</span>
+              <span>Скачайте PDF-файл с ТЗ (обычно <strong className="text-text">«Техническое задание.pdf»</strong>)</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-primary font-bold shrink-0">6.</span>
+              <span>Перетащите скачанный PDF в зону загрузки выше</span>
             </li>
           </ol>
         </div>
