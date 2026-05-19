@@ -42,7 +42,15 @@ export default function MonopolyPage() {
 
   useEffect(() => {
     getTenders()
-      .then((data) => setTenders(data.filter((t) => t.status === 'completed')))
+      .then((data) => {
+        const completed = data.filter((t) => t.status === 'completed');
+        const seen = new Map<string, TenderListItem>();
+        for (const t of completed) {
+          const key = t.title || `untitled-${t.id}`;
+          if (!seen.has(key)) seen.set(key, t);
+        }
+        setTenders([...seen.values()]);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

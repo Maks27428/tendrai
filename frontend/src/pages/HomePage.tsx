@@ -49,7 +49,14 @@ export default function HomePage() {
     }
   };
 
-  const completed = tenders.filter((t) => t.status === 'completed');
+  const completedAll = tenders.filter((t) => t.status === 'completed');
+  const seen = new Set<string>();
+  const completed = completedAll.filter((t) => {
+    const key = t.title || `untitled-${t.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   const inProgress = tenders.filter((t) => !['completed', 'failed'].includes(t.status));
   const hasTenders = tenders.length > 0;
 
