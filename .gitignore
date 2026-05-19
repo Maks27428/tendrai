@@ -31,7 +31,6 @@ Thumbs.db
 
 # Node
 node_modules/
-frontend/dist/
 frontend/dist-ssr/
 *.local
 npm-debug.log*

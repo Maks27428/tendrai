@@ -9,7 +9,6 @@
 .vscode
 .idea
 node_modules
-frontend/dist
 frontend/dist-ssr
 backend/media/uploads
 backend/staticfiles
