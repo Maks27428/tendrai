@@ -10,6 +10,7 @@ import RiskScore from '../components/RiskScore';
 import Checklist from '../components/Checklist';
 import Pitfalls from '../components/Pitfalls';
 import Proposal from '../components/Proposal';
+import ExportButton from '../components/ExportButton';
 import { ArrowLeft } from 'lucide-react';
 
 // Simple staggered fade-in: each block fades in with an increasing delay.
@@ -99,13 +100,18 @@ export default function AnalysisPage() {
   return (
     <div>
       <FadeIn delay={0}>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text mb-6 no-underline"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Назад
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text no-underline"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Назад
+          </Link>
+          {tender.status === 'completed' && (
+            <ExportButton tenderId={tender.id} title={tender.title} />
+          )}
+        </div>
       </FadeIn>
 
       {isProcessing && (

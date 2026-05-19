@@ -1,14 +1,18 @@
+import io
 import json
 import time
 import threading
 from pathlib import Path
 
 from django.conf import settings
-from django.http import StreamingHttpResponse, FileResponse
+from django.http import StreamingHttpResponse, FileResponse, HttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+from docx import Document
+from docx.shared import Pt, RGBColor, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from .models import Tender
 from .serializers import TenderListSerializer, TenderDetailSerializer, TenderUploadSerializer
@@ -90,6 +94,102 @@ def monopoly_check(request):
     tenders_data = [prepare_tender_data(t) for t in tenders]
     result = check_monopoly(tenders_data)
     return Response(result)
+
+
+@api_view(['GET'])
+def tender_export(request, pk):
+    try:
+        tender = Tender.objects.prefetch_related('requirements').get(pk=pk)
+    except Tender.DoesNotExist:
+        return Response({'error': 'Тендер не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+    if tender.status != 'completed':
+        return Response({'error': 'Анализ ещё не завершён'}, status=status.HTTP_400_BAD_REQUEST)
+
+    doc = Document()
+
+    style = doc.styles['Normal']
+    style.font.name = 'Arial'
+    style.font.size = Pt(11)
+
+    h = doc.add_heading('Анализ тендера — TendrAI', level=0)
+    h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    doc.add_heading(tender.title or 'Без названия', level=1)
+
+    if tender.summary:
+        s = tender.summary
+        table = doc.add_table(rows=0, cols=2)
+        table.style = 'Light Grid Accent 1'
+        for label, val in [
+            ('Заказчик', s.get('customer', '')),
+            ('Сумма', s.get('amount', '')),
+            ('Дедлайн', s.get('deadline', '')),
+            ('Категория', s.get('category', '')),
+            ('Место поставки', s.get('delivery_location', '')),
+        ]:
+            if val:
+                row = table.add_row()
+                row.cells[0].text = label
+                row.cells[1].text = str(val)
+
+    if tender.risk_score is not None:
+        doc.add_heading(f'Оценка риска: {tender.risk_score}/100', level=2)
+        if tender.risk_explanation:
+            doc.add_paragraph(tender.risk_explanation)
+
+    reqs = tender.requirements.all()
+    if reqs:
+        doc.add_heading(f'Требования ({reqs.count()})', level=2)
+        cat_labels = {
+            'qualification': 'Квалификация', 'technical': 'Технические',
+            'financial': 'Финансовые', 'deadline': 'Сроки', 'document': 'Документы',
+        }
+        status_labels = {
+            'critical': '[КРИТИЧНО]', 'warning': '[ВНИМАНИЕ]',
+            'ok': '[OK]', 'needs_review': '[ПРОВЕРИТЬ]',
+        }
+        grouped = {}
+        for r in reqs:
+            grouped.setdefault(r.category, []).append(r)
+        for cat, items in grouped.items():
+            doc.add_heading(cat_labels.get(cat, cat), level=3)
+            for r in items:
+                prefix = status_labels.get(r.status, '')
+                p = doc.add_paragraph(f'{prefix} {r.text}')
+                if r.details:
+                    doc.add_paragraph(r.details, style='List Bullet')
+
+    if tender.pitfalls:
+        doc.add_heading(f'Подводные камни ({len(tender.pitfalls)})', level=2)
+        for pit in tender.pitfalls:
+            p = doc.add_paragraph(pit.get('text', ''))
+            p.runs[0].bold = True
+            if pit.get('recommendation'):
+                doc.add_paragraph(f'Рекомендация: {pit["recommendation"]}', style='List Bullet')
+
+    if tender.technical_proposal:
+        doc.add_heading('Техническое предложение (черновик)', level=2)
+        for line in tender.technical_proposal.split('\n'):
+            doc.add_paragraph(line)
+
+    doc.add_paragraph('')
+    footer = doc.add_paragraph('Сгенерировано TendrAI — AI-ассистент госзакупок РК')
+    footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    footer.runs[0].font.size = Pt(9)
+    footer.runs[0].font.color.rgb = RGBColor(128, 128, 128)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+
+    safe_title = (tender.title or 'tender')[:50].replace(' ', '_')
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    response['Content-Disposition'] = f'attachment; filename="TendrAI_{safe_title}.docx"'
+    return response
 
 
 def tender_stream(request, pk):
