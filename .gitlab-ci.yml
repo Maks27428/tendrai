@@ -40,7 +40,8 @@ build_image:
       DEBUG=0
       ALLOWED_HOSTS=*
       EOF
-    - docker build -t a1-registry3.alem.ai/error200ok/tendrai:$CI_COMMIT_SHORT_SHA .
+    - cat backend/.env | head -3
+    - docker build --no-cache -t a1-registry3.alem.ai/error200ok/tendrai:$CI_COMMIT_SHORT_SHA .
     - docker push a1-registry3.alem.ai/error200ok/tendrai:$CI_COMMIT_SHORT_SHA
 
 deploy:
