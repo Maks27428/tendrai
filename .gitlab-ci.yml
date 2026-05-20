@@ -13,6 +13,33 @@ build_image:
     - master
   script:
     - docker login -u "$CONTAINER_REGISTRY_USER" -p "$CONTAINER_REGISTRY_PASSWORD" a1-registry3.alem.ai
+    - |
+      cat > backend/.env <<EOF
+      DB_ENGINE=$DB_ENGINE
+      DB_NAME=$DB_NAME
+      DB_USER=$DB_USER
+      DB_PASSWORD=$DB_PASSWORD
+      DB_HOST=$DB_HOST
+      DB_PORT=$DB_PORT
+      LLM_API_URL=$LLM_API_URL
+      LLM_API_KEY=$LLM_API_KEY
+      LLM_MODEL=$LLM_MODEL
+      REDIS_HOST=$REDIS_HOST
+      REDIS_PORT=$REDIS_PORT
+      REDIS_PASSWORD=$REDIS_PASSWORD
+      REDIS_DB=0
+      EMBEDDER_API_URL=https://llm.alem.ai/v1/embeddings
+      EMBEDDER_API_KEY=$EMBEDDER_API_KEY
+      EMBEDDER_MODEL=text-1024
+      MILVUS_HOST=$MILVUS_HOST
+      MILVUS_PORT=30130
+      MILVUS_USER=$MILVUS_USER
+      MILVUS_PASSWORD=$MILVUS_PASSWORD
+      MILVUS_SECURE=true
+      DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY
+      DEBUG=0
+      ALLOWED_HOSTS=*
+      EOF
     - docker build -t a1-registry3.alem.ai/error200ok/tendrai:$CI_COMMIT_SHORT_SHA .
     - docker push a1-registry3.alem.ai/error200ok/tendrai:$CI_COMMIT_SHORT_SHA
 
