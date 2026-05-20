@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { FileSearch, Shield } from 'lucide-react';
+import { FileSearch, Shield, Search } from 'lucide-react';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
@@ -16,13 +16,22 @@ export default function Layout({ children }: { children: ReactNode }) {
               <p className="text-xs text-text-muted m-0">AI-ассистент госзакупок</p>
             </div>
           </Link>
-          <Link
-            to="/monopoly"
-            className="flex items-center gap-2 px-4 py-2 bg-warning/10 hover:bg-warning/20 border border-warning/30 rounded-lg transition-colors no-underline"
-          >
-            <Shield className="w-4 h-4 text-warning" />
-            <span className="text-sm font-medium text-warning">Проверка на монополию</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/search"
+              className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors no-underline"
+            >
+              <Search className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-primary">Найти тендер</span>
+            </Link>
+            <Link
+              to="/monopoly"
+              className="flex items-center gap-2 px-4 py-2 bg-warning/10 hover:bg-warning/20 border border-warning/30 rounded-lg transition-colors no-underline"
+            >
+              <Shield className="w-4 h-4 text-warning" />
+              <span className="text-sm font-medium text-warning">Проверка на монополию</span>
+            </Link>
+          </div>
         </div>
       </header>
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">

@@ -7,6 +7,7 @@ urlpatterns = [
     path('tenders/demo-pdfs/', views.demo_pdf_list, name='demo-pdf-list'),
     path('tenders/demo-pdfs/<str:filename>/', views.demo_pdf_download, name='demo-pdf-download'),
     path('tenders/monopoly-check/', views.monopoly_check, name='monopoly-check'),
+    path('tenders/search-goszakup/', views.search_goszakup, name='search-goszakup'),
     path('tenders/<int:pk>/', views.tender_detail, name='tender-detail'),
     path('tenders/<int:pk>/export/', views.tender_export, name='tender-export'),
     path('tenders/<int:pk>/stream/', views.tender_stream, name='tender-stream'),

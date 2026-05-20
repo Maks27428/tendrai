@@ -18,6 +18,7 @@ from .models import Tender
 from .serializers import TenderListSerializer, TenderDetailSerializer, TenderUploadSerializer
 from ai_pipeline.pipeline import process_tender
 from ai_pipeline.monopoly import check_monopoly, prepare_tender_data
+from ai_pipeline.goszakup import search_tenders as goszakup_search
 
 
 @api_view(['GET'])
@@ -190,6 +191,17 @@ def tender_export(request, pk):
     )
     response['Content-Disposition'] = f'attachment; filename="TendrAI_{safe_title}.docx"'
     return response
+
+
+@api_view(['GET'])
+def search_goszakup(request):
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return Response({'results': [], 'total': 0})
+
+    page = int(request.GET.get('page', 1))
+    result = goszakup_search(query, page=page)
+    return Response(result)
 
 
 def tender_stream(request, pk):

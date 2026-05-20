@@ -8,5 +8,6 @@ psycopg2-binary
 redis
 pymilvus
 requests
+beautifulsoup4
 gunicorn
 whitenoise

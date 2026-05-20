@@ -112,6 +112,33 @@ export interface MonopolyResult {
   recommendations: string[];
 }
 
+export interface GoszakupTender {
+  lot_number: string;
+  announce_id: string;
+  title: string;
+  description: string;
+  customer: string;
+  quantity: string;
+  amount: number;
+  amount_raw: string;
+  method: string;
+  status: string;
+  url: string;
+}
+
+export interface GoszakupSearchResult {
+  results: GoszakupTender[];
+  total: number;
+  error?: string;
+}
+
+export async function searchGoszakup(query: string, page: number = 1): Promise<GoszakupSearchResult> {
+  const { data } = await api.get<GoszakupSearchResult>('/tenders/search-goszakup/', {
+    params: { q: query, page },
+  });
+  return data;
+}
+
 export async function checkMonopoly(tenderIds: number[]): Promise<MonopolyResult> {
   const { data } = await api.post<MonopolyResult>('/tenders/monopoly-check/', {
     tender_ids: tenderIds,
