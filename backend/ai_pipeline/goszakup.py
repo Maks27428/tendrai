@@ -13,9 +13,10 @@ HEADERS = {
 }
 
 
-def search_tenders(query: str, page: int = 1) -> dict:
+def search_tenders(query: str, page: int = 1, year: int = 2026) -> dict:
     params = {
         'filter[name]': query,
+        'filter[year]': year,
         'page': page,
     }
     try:

@@ -200,7 +200,8 @@ def search_goszakup(request):
         return Response({'results': [], 'total': 0})
 
     page = int(request.GET.get('page', 1))
-    result = goszakup_search(query, page=page)
+    year = int(request.GET.get('year', 2026))
+    result = goszakup_search(query, page=page, year=year)
     return Response(result)
 
 
