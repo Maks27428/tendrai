@@ -18,12 +18,15 @@ from .models import Tender
 from .serializers import TenderListSerializer, TenderDetailSerializer, TenderUploadSerializer
 from ai_pipeline.pipeline import process_tender
 from ai_pipeline.monopoly import check_monopoly, prepare_tender_data
-from ai_pipeline.goszakup import search_tenders as goszakup_search
+from ai_pipeline.goszakup import search_tenders as goszakup_search, fetch_tender_pdf
 
 
 @api_view(['GET'])
 def tender_list(request):
-    tenders = Tender.objects.all()[:20]
+    tenders = Tender.objects.all()
+    if request.GET.get('my') == '1' and request.user.is_authenticated:
+        tenders = tenders.filter(user=request.user)
+    tenders = tenders[:20]
     serializer = TenderListSerializer(tenders, many=True)
     return Response(serializer.data)
 
@@ -47,6 +50,10 @@ def tender_upload(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     tender = serializer.save()
+
+    if request.user.is_authenticated:
+        tender.user = request.user
+        tender.save(update_fields=['user'])
 
     # Start AI pipeline in background thread
     thread = threading.Thread(target=process_tender, args=(tender.id,), daemon=True)
@@ -191,6 +198,36 @@ def tender_export(request, pk):
     )
     response['Content-Disposition'] = f'attachment; filename="TendrAI_{safe_title}.docx"'
     return response
+
+
+@api_view(['POST'])
+def analyze_goszakup(request):
+    url = request.data.get('url', '').strip()
+    if not url:
+        return Response({'error': 'URL объявления не указан'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        pdf_bytes, filename = fetch_tender_pdf(url)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response(
+            {'error': 'Не удалось скачать PDF с goszakup.gov.kz. Попробуйте загрузить файл вручную.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    from django.core.files.base import ContentFile
+    tender = Tender.objects.create()
+    tender.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
+
+    if request.user.is_authenticated:
+        tender.user = request.user
+        tender.save(update_fields=['user'])
+
+    thread = threading.Thread(target=process_tender, args=(tender.id,), daemon=True)
+    thread.start()
+
+    return Response(TenderDetailSerializer(tender).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])

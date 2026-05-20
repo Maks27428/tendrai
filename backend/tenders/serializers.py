@@ -10,10 +10,11 @@ class RequirementSerializer(serializers.ModelSerializer):
 
 class TenderListSerializer(serializers.ModelSerializer):
     requirements_count = serializers.IntegerField(source='requirements.count', read_only=True)
+    user_nickname = serializers.CharField(source='user.username', read_only=True, default=None)
 
     class Meta:
         model = Tender
-        fields = ['id', 'title', 'status', 'risk_score', 'page_count', 'summary', 'requirements_count', 'created_at']
+        fields = ['id', 'title', 'status', 'risk_score', 'page_count', 'summary', 'requirements_count', 'user_nickname', 'created_at']
 
 
 class TenderDetailSerializer(serializers.ModelSerializer):

@@ -111,6 +111,84 @@ def _parse_results(html: str) -> dict:
     }
 
 
+def fetch_tender_pdf(announce_url: str) -> tuple:
+    """Fetch PDF from a goszakup.gov.kz announcement page.
+    Uses AJAX endpoint actionAjaxModalShowFiles to find file download links.
+    Returns (pdf_bytes, filename). Raises ValueError if no PDF found.
+    """
+    id_match = re.search(r'/announce/index/(\d+)', announce_url)
+    if not id_match:
+        raise ValueError('Неверный URL объявления goszakup.gov.kz')
+
+    announce_id = id_match.group(1)
+
+    resp = requests.get(announce_url + '?tab=documents', headers=HEADERS, timeout=20)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, 'html.parser')
+
+    group_ids = []
+    for btn in soup.find_all(onclick=re.compile(r'actionModalShowFiles')):
+        m = re.search(r'actionModalShowFiles\(\s*\d+\s*,\s*(\d+)\s*\)', btn.get('onclick', ''))
+        if m:
+            group_ids.append(m.group(1))
+
+    if not group_ids:
+        for btn in soup.find_all('button', onclick=True):
+            m = re.search(r'actionModalShowFiles\(\s*\d+\s*,\s*(\d+)\s*\)', btn['onclick'])
+            if m:
+                group_ids.append(m.group(1))
+
+    if not group_ids:
+        raise ValueError('Документы не найдены на странице объявления. Скачайте PDF вручную с goszakup.gov.kz')
+
+    pdf_candidates = []
+    for gid in group_ids:
+        ajax_url = f'{ANNOUNCE_BASE}/ru/announce/actionAjaxModalShowFiles/{announce_id}/{gid}'
+        try:
+            ajax_resp = requests.get(ajax_url, headers=HEADERS, timeout=15)
+            ajax_resp.raise_for_status()
+            ajax_soup = BeautifulSoup(ajax_resp.text, 'html.parser')
+
+            for link in ajax_soup.find_all('a', href=True):
+                href = link['href']
+                text = link.get_text(strip=True)
+                if 'download_file' in href or href.lower().endswith('.pdf'):
+                    pdf_candidates.append((href, text))
+        except Exception:
+            continue
+
+    if not pdf_candidates:
+        raise ValueError('PDF-файлы не найдены в документах объявления. Скачайте PDF вручную с goszakup.gov.kz')
+
+    best_url = pdf_candidates[0][0]
+    for href, text in pdf_candidates:
+        if '.pdf' in text.lower():
+            best_url = href
+            break
+
+    pdf_resp = requests.get(best_url, headers=HEADERS, timeout=60)
+    pdf_resp.raise_for_status()
+
+    if pdf_resp.content[:5] != b'%PDF-':
+        content_type = pdf_resp.headers.get('content-type', '')
+        if 'pdf' not in content_type:
+            raise ValueError('Скачанный файл не является PDF')
+
+    cd = pdf_resp.headers.get('content-disposition', '')
+    filename = 'tender_goszakup.pdf'
+    if 'filename' in cd:
+        fn_match = re.search(r'filename[*]?=(?:UTF-8\'\'|"?)([^";\n]+)', cd)
+        if fn_match:
+            filename = fn_match.group(1).strip().strip('"')
+    else:
+        for _, text in pdf_candidates:
+            if '.pdf' in text.lower():
+                filename = text
+                break
+
+    return pdf_resp.content, filename
+
+
 def _clean_amount(raw: str) -> float:
     cleaned = re.sub(r'[^\d,.]', '', raw.replace('\xa0', ''))
     cleaned = cleaned.replace(',', '.')

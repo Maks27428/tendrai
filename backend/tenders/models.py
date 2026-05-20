@@ -1,3 +1,4 @@
+from django.conf import settings as conf_settings
 from django.db import models
 
 
@@ -26,6 +27,8 @@ class Tender(models.Model):
     contacts = models.JSONField(null=True, blank=True)
 
     technical_proposal = models.TextField(blank=True)
+
+    user = models.ForeignKey(conf_settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='tenders')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

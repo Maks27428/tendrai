@@ -5,9 +5,11 @@ import TenderPreviewCard from '../components/TenderPreviewCard';
 import { uploadTender, uploadDemoPdf, getDemoPdfs, getTenders } from '../api/client';
 import type { TenderListItem, DemoPdf } from '../api/client';
 import { AlertTriangle, Sparkles, Clock, Play, ExternalLink } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [tenders, setTenders] = useState<TenderListItem[]>([]);
@@ -16,12 +18,12 @@ export default function HomePage() {
   const [loadingDemo, setLoadingDemo] = useState('');
 
   useEffect(() => {
-    getTenders()
+    getTenders(!!user)
       .then(setTenders)
       .catch(() => {})
       .finally(() => setLoadingTenders(false));
     getDemoPdfs().then(setDemoPdfs).catch(() => {});
-  }, []);
+  }, [user]);
 
   const handleDemo = async (filename: string) => {
     setLoadingDemo(filename);
@@ -127,11 +129,11 @@ export default function HomePage() {
             </li>
             <li className="flex gap-2">
               <span className="text-primary font-bold shrink-0">4.</span>
-              <span>Найдите раздел <strong className="text-text">«Документы»</strong> или <strong className="text-text">«Техническая спецификация»</strong></span>
+              <span>Откройте раздел <strong className="text-text">«Проект договора об электронных закупках»</strong></span>
             </li>
             <li className="flex gap-2">
               <span className="text-primary font-bold shrink-0">5.</span>
-              <span>Скачайте PDF-файл с ТЗ (обычно <strong className="text-text">«Техническое задание.pdf»</strong>)</span>
+              <span>Скачайте PDF-файл договора</span>
             </li>
             <li className="flex gap-2">
               <span className="text-primary font-bold shrink-0">6.</span>

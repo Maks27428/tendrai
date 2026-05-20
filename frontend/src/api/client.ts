@@ -4,6 +4,16 @@ const api = axios.create({
   baseURL: '/api',
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Token ${token}`;
+  }
+  return config;
+});
+
+export default api;
+
 export interface TenderSummary {
   amount: string;
   deadline: string;
@@ -52,6 +62,7 @@ export interface TenderListItem {
   created_at: string;
   summary?: TenderSummary | null;
   requirements_count?: number | null;
+  user_nickname?: string | null;
 }
 
 export interface StreamEvent {
@@ -91,8 +102,10 @@ export async function getTender(id: number): Promise<TenderDetail> {
   return data;
 }
 
-export async function getTenders(): Promise<TenderListItem[]> {
-  const { data } = await api.get<TenderListItem[]>('/tenders/');
+export async function getTenders(my?: boolean): Promise<TenderListItem[]> {
+  const { data } = await api.get<TenderListItem[]>('/tenders/', {
+    params: my ? { my: '1' } : undefined,
+  });
   return data;
 }
 
@@ -136,6 +149,11 @@ export async function searchGoszakup(query: string, page: number = 1): Promise<G
   const { data } = await api.get<GoszakupSearchResult>('/tenders/search-goszakup/', {
     params: { q: query, page },
   });
+  return data;
+}
+
+export async function analyzeGoszakup(url: string): Promise<TenderDetail> {
+  const { data } = await api.post<TenderDetail>('/tenders/analyze-goszakup/', { url });
   return data;
 }
 

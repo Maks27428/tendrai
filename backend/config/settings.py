@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'tenders',
 ]
@@ -113,12 +114,20 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
 }
 
 # Alem Plus: LLM (OpenAI-compatible API)
 LLM_API_URL = os.getenv('LLM_API_URL', 'https://llm.alem.ai/v1')
 LLM_API_KEY = os.getenv('LLM_API_KEY', '')
 LLM_MODEL = os.getenv('LLM_MODEL', 'alemllm')
+LLM_FALLBACK_MODELS = [
+    m.strip() for m in os.getenv('LLM_FALLBACK_MODELS', '').split(',') if m.strip()
+]
+LLM_FALLBACK_API_URL = os.getenv('LLM_FALLBACK_API_URL', LLM_API_URL)
+LLM_FALLBACK_API_KEY = os.getenv('LLM_FALLBACK_API_KEY', LLM_API_KEY)
 
 # Alem Plus: Redis cache
 _redis_host = os.getenv('REDIS_HOST', '')

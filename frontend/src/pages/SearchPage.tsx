@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import { Search, ExternalLink, Banknote, Building2, Tag, Loader2, SearchX, Sparkles, User } from 'lucide-react';
-import { searchGoszakup } from '../api/client';
+import { useNavigate } from 'react-router-dom';
+import { Search, ExternalLink, Banknote, Tag, Loader2, SearchX, Sparkles, User, Zap } from 'lucide-react';
+import { searchGoszakup, analyzeGoszakup } from '../api/client';
 import type { GoszakupTender } from '../api/client';
 
 const QUICK_FILTERS = [
@@ -34,6 +35,7 @@ function statusColor(status: string): string {
 }
 
 export default function SearchPage() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GoszakupTender[]>([]);
   const [total, setTotal] = useState(0);
@@ -41,6 +43,7 @@ export default function SearchPage() {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
 
   const doSearch = useCallback(async (q: string, p: number = 1) => {
     if (!q.trim()) return;
@@ -65,6 +68,20 @@ export default function SearchPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     doSearch(query, 1);
+  };
+
+  const handleAnalyze = async (tender: GoszakupTender) => {
+    if (!tender.url || analyzingId) return;
+    setAnalyzingId(tender.announce_id);
+    setError('');
+    try {
+      const result = await analyzeGoszakup(tender.url);
+      navigate(`/analysis/${result.id}`);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setError(axiosErr.response?.data?.error || 'Не удалось запустить анализ. Попробуйте загрузить PDF вручную.');
+      setAnalyzingId(null);
+    }
   };
 
   return (
@@ -183,14 +200,6 @@ export default function SearchPage() {
                   )}
                 </div>
 
-                {/* Customer */}
-                {tender.customer && (
-                  <p className="text-xs text-text-muted mb-3 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 shrink-0 text-text-muted/60" />
-                    <span className="truncate">{tender.customer}</span>
-                  </p>
-                )}
-
                 {/* Meta chips */}
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                   {tender.amount > 0 && (
@@ -215,14 +224,28 @@ export default function SearchPage() {
                 {/* Actions */}
                 <div className="flex items-center gap-3">
                   {tender.url && (
+                    <button
+                      onClick={() => handleAnalyze(tender)}
+                      disabled={!!analyzingId}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3.5 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-lg transition-all"
+                    >
+                      {analyzingId === tender.announce_id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Zap className="w-3.5 h-3.5" />
+                      )}
+                      {analyzingId === tender.announce_id ? 'Загрузка PDF...' : 'Анализ'}
+                    </button>
+                  )}
+                  {tender.url && (
                     <a
                       href={tender.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors no-underline"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-primary transition-colors no-underline"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      Открыть на goszakup.gov.kz
+                      goszakup.gov.kz
                     </a>
                   )}
                 </div>
