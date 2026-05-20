@@ -122,18 +122,10 @@ def _clean_amount(raw: str) -> float:
 
 def _parse_total(soup) -> int:
     try:
-        pagination = soup.find('ul', class_=re.compile(r'pagination'))
-        if pagination:
-            items = pagination.find_all('li')
-            nums = []
-            for item in items:
-                link = item.find('a')
-                if link:
-                    text = link.get_text(strip=True)
-                    if text.isdigit():
-                        nums.append(int(text))
-            if nums:
-                return max(nums) * 50
+        text = soup.get_text()
+        match = re.search(r'из\s+([\d\s]+)\s+запис', text)
+        if match:
+            return int(match.group(1).replace(' ', ''))
     except Exception:
         pass
     return 0
