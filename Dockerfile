@@ -16,6 +16,6 @@ COPY frontend/dist /app/frontend_dist
 
 RUN DEBUG=0 DJANGO_SECRET_KEY=build-placeholder python manage.py collectstatic --noinput 2>/dev/null || true
 
-EXPOSE 8000
+EXPOSE 80
 
 CMD python manage.py migrate --noinput && gunicorn config.wsgi:application -c gunicorn.conf.py

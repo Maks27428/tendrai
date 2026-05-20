@@ -1,66 +1,42 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+variables:
+  DOCKER_REGISTRY: $CI_REGISTRY
+  DOCKER_IMAGE: $CI_REGISTRY_IMAGE
+
 stages:
   - build
   - deploy
 
-variables:
-  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
-
-build:
+build_image:
   stage: build
-  image: docker:24-dind
-  services:
-    - docker:24-dind
-  variables:
-    DOCKER_TLS_CERTDIR: ""
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
-    - docker push $IMAGE_TAG
-    - docker push $IMAGE_LATEST
   only:
     - master
-    - main
+  script:
+    - docker login -u $CONTAINER_REGISTRY_USER -p $CONTAINER_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker push $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA
 
 deploy:
+  image: alpine
   stage: deploy
-  image: docker:24-dind
-  services:
-    - docker:24-dind
-  variables:
-    DOCKER_TLS_CERTDIR: ""
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - docker pull $IMAGE_LATEST
-    - docker stop tendrai-app || true
-    - docker rm tendrai-app || true
-    - >
-      docker run -d
-      --name tendrai-app
-      --restart unless-stopped
-      -p 8000:8000
-      -e DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY"
-      -e DB_ENGINE="$DB_ENGINE"
-      -e DB_NAME="$DB_NAME"
-      -e DB_USER="$DB_USER"
-      -e DB_PASSWORD="$DB_PASSWORD"
-      -e DB_HOST="$DB_HOST"
-      -e DB_PORT="$DB_PORT"
-      -e LLM_API_URL="$LLM_API_URL"
-      -e LLM_API_KEY="$LLM_API_KEY"
-      -e LLM_MODEL="$LLM_MODEL"
-      -e REDIS_HOST="$REDIS_HOST"
-      -e REDIS_PASSWORD="$REDIS_PASSWORD"
-      -e REDIS_PORT="$REDIS_PORT"
-      -e EMBEDDER_API_KEY="$EMBEDDER_API_KEY"
-      -e MILVUS_HOST="$MILVUS_HOST"
-      -e MILVUS_USER="$MILVUS_USER"
-      -e MILVUS_PASSWORD="$MILVUS_PASSWORD"
-      -e DEBUG=0
-      $IMAGE_LATEST
   only:
     - master
-    - main
-  when: manual
+  needs: ["build_image"]
+  script:
+    - apk add --no-cache curl
+    - |
+      echo "Triggering deploy to AlemPlus Kubernetes..."
+
+      curl -X POST \
+        --fail \
+        -F "token=$ROOT_DEPLOY_TRIGGER_TOKEN" \
+        -F "ref=master" \
+        -F "variables[DEPLOYMENT_TAG]=$CI_COMMIT_SHORT_SHA" \
+        -F "variables[DEPLOYMENT_NAME]=$CI_PROJECT_PATH" \
+        -F "variables[DEPLOYMENT_LOGS_USER]=$CONTAINER_REGISTRY_USER" \
+        -F "variables[DEPLOYMENT_LOGS_PASSWORD]=$CONTAINER_REGISTRY_PASSWORD" \
+        https://$CI_SERVER_HOST/api/v4/projects/$ROOT_DEPLOY_TRIGGER_PROJECT/trigger/pipeline
