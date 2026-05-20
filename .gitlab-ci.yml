@@ -1,11 +1,7 @@
 image: docker:latest
 
-services:
-  - docker:dind
-
 variables:
-  DOCKER_REGISTRY: "${CI_SERVER_HOST}:5050"
-  DOCKER_IMAGE: "${CI_SERVER_HOST}:5050/${CI_PROJECT_PATH}"
+  DOCKER_TLS_CERTDIR: ""
 
 stages:
   - build
@@ -16,9 +12,9 @@ build_image:
   only:
     - master
   script:
-    - docker login -u $CONTAINER_REGISTRY_USER -p $CONTAINER_REGISTRY_PASSWORD $DOCKER_REGISTRY
-    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA .
-    - docker push $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker login -u "$CONTAINER_REGISTRY_USER" -p "$CONTAINER_REGISTRY_PASSWORD" a1-registry3.alem.ai
+    - docker build -t a1-registry3.alem.ai/error200ok/tendrai:$CI_COMMIT_SHORT_SHA .
+    - docker push a1-registry3.alem.ai/error200ok/tendrai:$CI_COMMIT_SHORT_SHA
 
 deploy:
   image: alpine
