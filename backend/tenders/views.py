@@ -231,6 +231,59 @@ def analyze_goszakup(request):
 
 
 @api_view(['GET'])
+def health_llm(request):
+    """Diagnostic endpoint: test LLM connectivity from production."""
+    import requests as req
+    from django.conf import settings as s
+
+    results = []
+    models = [s.LLM_MODEL] + getattr(s, 'LLM_FALLBACK_MODELS', [])
+    for model in models:
+        fallback_models = getattr(s, 'LLM_FALLBACK_MODELS', [])
+        if model in fallback_models:
+            api_url = getattr(s, 'LLM_FALLBACK_API_URL', s.LLM_API_URL)
+            api_key = getattr(s, 'LLM_FALLBACK_API_KEY', s.LLM_API_KEY)
+        else:
+            api_url = s.LLM_API_URL
+            api_key = s.LLM_API_KEY
+
+        entry = {
+            'model': model,
+            'api_url': api_url,
+            'key_set': bool(api_key),
+            'key_prefix': api_key[:8] + '...' if api_key else '(empty)',
+        }
+        try:
+            resp = req.post(
+                f"{api_url}/chat/completions",
+                headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+                json={
+                    'model': model,
+                    'messages': [{'role': 'user', 'content': 'Say OK'}],
+                    'max_tokens': 5,
+                },
+                timeout=15,
+            )
+            entry['status_code'] = resp.status_code
+            entry['ok'] = resp.ok
+            if resp.ok:
+                entry['response'] = resp.json().get('choices', [{}])[0].get('message', {}).get('content', '')[:50]
+            else:
+                entry['error'] = resp.text[:200]
+        except Exception as e:
+            entry['ok'] = False
+            entry['error'] = str(e)[:200]
+        results.append(entry)
+
+    return Response({'models': results, 'env_check': {
+        'LLM_API_URL': s.LLM_API_URL,
+        'LLM_MODEL': s.LLM_MODEL,
+        'LLM_FALLBACK_MODELS': getattr(s, 'LLM_FALLBACK_MODELS', []),
+        'LLM_FALLBACK_API_URL': getattr(s, 'LLM_FALLBACK_API_URL', ''),
+    }})
+
+
+@api_view(['GET'])
 def search_goszakup(request):
     query = request.GET.get('q', '').strip()
     if not query:

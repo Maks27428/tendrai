@@ -11,6 +11,7 @@ urlpatterns = [
     path('tenders/demo-pdfs/<str:filename>/', views.demo_pdf_download, name='demo-pdf-download'),
     path('tenders/monopoly-check/', views.monopoly_check, name='monopoly-check'),
     path('tenders/search-goszakup/', views.search_goszakup, name='search-goszakup'),
+    path('health/llm/', views.health_llm, name='health-llm'),
     path('tenders/analyze-goszakup/', views.analyze_goszakup, name='analyze-goszakup'),
     path('tenders/<int:pk>/', views.tender_detail, name='tender-detail'),
     path('tenders/<int:pk>/export/', views.tender_export, name='tender-export'),
