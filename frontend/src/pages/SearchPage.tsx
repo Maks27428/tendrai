@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Search, ExternalLink, Banknote, Building2, Tag, Loader2, SearchX, Sparkles } from 'lucide-react';
+import { Search, ExternalLink, Banknote, Building2, Tag, Loader2, SearchX, Sparkles, User } from 'lucide-react';
 import { searchGoszakup } from '../api/client';
 import type { GoszakupTender } from '../api/client';
 
@@ -166,8 +166,14 @@ export default function SearchPage() {
                     <h3 className="text-sm font-semibold text-text leading-snug line-clamp-2">
                       {tender.title || tender.description || 'Без названия'}
                     </h3>
+                    {tender.customer && (
+                      <p className="text-xs text-text-muted mt-1.5 flex items-center gap-1">
+                        <User className="w-3 h-3 shrink-0" />
+                        <span className="line-clamp-1">{tender.customer}</span>
+                      </p>
+                    )}
                     {tender.description && tender.description !== tender.title && (
-                      <p className="text-xs text-text-muted mt-1 line-clamp-1">{tender.description}</p>
+                      <p className="text-xs text-text-muted/60 mt-1 line-clamp-1">{tender.description}</p>
                     )}
                   </div>
                   {tender.status && (
